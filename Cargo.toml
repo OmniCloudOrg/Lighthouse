@@ -1,6 +1,6 @@
 [package]
 name = "lighthouse"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2021"
 authors = ["Tristan J. Poland <me@tridentforu.com>"]
 description = "A flexible, generic autoscaling library for Rust with type-safe callbacks and streaming metrics"
@@ -72,7 +72,7 @@ rand = "0.8"
 chrono = { version = "0.4", features = ["serde"] }
 
 [features]
-default = ["tracing-integration", "metrics-persistence"]
+default = ["tracing-integration", "metrics-persistence", "time-utils", "predictive-scaling"]
 
 # Core features
 tracing-integration = []

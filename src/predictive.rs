@@ -54,11 +54,11 @@
 
 
 #[cfg(feature = "predictive-scaling")]
-#[cfg(feature = "time-utils")]
+#[cfg(any(feature = "time-utils", feature = "predictive-scaling"))]
 use chrono::{Utc, Duration as ChronoDuration};
 
-#[cfg(feature = "predictive-scaling")]
-use chrono::{Utc, Duration as ChronoDuration};
+#[cfg(all(feature = "predictive-scaling", feature = "metrics-persistence"))]
+use chrono::DateTime;
 
 #[cfg(feature = "metrics-persistence")]
 use crate::persistence::{MetricsStore, HistoricalDataPoint, MetricsQuery};

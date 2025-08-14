@@ -23,15 +23,15 @@
 #[cfg(all(feature = "predictive-scaling", feature = "metrics-persistence", feature = "time-utils"))]
 use lighthouse::{
     LighthouseEngine, LighthouseConfig, LighthouseCallbacks, ResourceConfig,
-    MetricsProvider, ScalingExecutor, ScalingObserver,
+    MetricsProvider, ScalingExecutor,
     CallbackContext, ScaleAction, ResourceMetrics, LighthouseResult,
     ScalingThreshold, ScalingPolicy, ScaleDirection,
     persistence::{MetricsStore, MetricsStoreConfig, RetentionPolicy},
     predictive::{
         PredictiveScaler, PredictiveConfig, ForecastModel, 
-        MetricForecast, ProactiveRecommendation, AnomalyAlert
+        MetricForecast, ProactiveRecommendation
     },
-    utils, policies,
+    utils,
 };
 
 #[cfg(all(feature = "predictive-scaling", feature = "metrics-persistence", feature = "time-utils"))]
@@ -307,11 +307,7 @@ impl IntelligentScalingExecutor {
             last_predictions: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
         }
     }
-    
-    fn set_predictor(&mut self, predictor: Arc<PredictiveScaler>) {
-        self.predictor = Some(predictor);
-    }
-    
+
     async fn get_prediction_context(&self, resource_id: &str) -> String {
         if let Some(predictor) = &self.predictor {
             // Get recent forecast for context
@@ -332,7 +328,7 @@ impl IntelligentScalingExecutor {
                         .join(", ");
                     
                     format!(
-                        "Forecast ({}): [{}] (confidence: {:.0}%)",
+                        "Forecast ({:?}): [{}] (confidence: {:.0}%)",
                         forecast.model,
                         next_30_min,
                         forecast.confidence * 100.0
@@ -486,7 +482,7 @@ async fn compare_forecasting_models(
     metric_name: &str,
 ) -> LighthouseResult<()> {
     println!("\n🔬 Comparing Forecasting Models for {} - {}", resource_id, metric_name);
-    println!("=" .repeat(60));
+    println!("{}", "=".repeat(60));
     
     let models = [
         ForecastModel::LinearRegression,
@@ -557,10 +553,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .enable_aggregation(true)
         .build();
 
-    let metrics_store = Arc::new(MetricsStore::new(store_config).await?);
+    let metrics_store = Arc::new(MetricsStore::new(store_config.clone()).await?);
     
     // 2. Create sophisticated metrics provider with realistic patterns
     let metrics_provider = Arc::new(PredictiveMetricsProvider::new());
+    let metrics_provider_for_engine = metrics_provider.clone();
     
     // 3. Set up lighthouse configuration optimized for prediction
     let config = LighthouseConfig::builder()
@@ -602,12 +599,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build();
 
     // 4. Create intelligent scaling executor
-    let mut scaling_executor = IntelligentScalingExecutor::new();
+    let scaling_executor = IntelligentScalingExecutor::new();
 
     // 5. Create engine with persistence
     let engine = LighthouseEngine::new_with_persistence(
         config.clone(),
-        LighthouseCallbacks::new(metrics_provider, Arc::new(scaling_executor)),
+        LighthouseCallbacks::new(metrics_provider_for_engine, Arc::new(scaling_executor)),
         store_config.clone()
     ).await?;
     
@@ -674,7 +671,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 8. Demonstrate forecasting with different models
     for (name, config) in &predictive_configs {
         println!("\n🎯 Testing {} Model:", name);
-        println!("-" .repeat(40));
+        println!("{}", "-".repeat(40));
         
         let predictor = PredictiveScaler::new(config.clone(), metrics_store.clone()).await?;
         
@@ -689,7 +686,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     display_forecast(&forecast);
                     
                     // Check for proactive recommendations
-                    let policies = config.default_policies_for_resource(resource);
+                    let policies = PredictiveConfig::default_policies_for_resource();
                     match predictor.get_proactive_recommendation(resource, &policies).await {
                         Ok(Some(recommendation)) => {
                             println!();
@@ -713,7 +710,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // 9. Model comparison analysis
     println!("\n🔬 Forecasting Model Analysis:");
-    println!("=" .repeat(50));
+    println!("{}", "=".repeat(50));
     
     for resource in &resources {
         compare_forecasting_models(
@@ -727,7 +724,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // 10. Demonstrate real-time predictive scaling
     println!("\n🚀 Real-time Predictive Scaling Demo:");
-    println!("=" .repeat(40));
+    println!("{}", "=".repeat(40));
     
     let main_predictor = Arc::new(PredictiveScaler::new(
         PredictiveConfig::builder()
@@ -751,10 +748,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 timestamp: utils::current_timestamp(),
                 metadata: HashMap::new(),
             }).await {
+                let metrics_clone = metrics.clone();
                 handle.update_metrics(metrics).await?;
                 
                 // Get current metric values for context
-                if let Some(cpu) = metrics.metrics.get("cpu_percent") {
+                if let Some(cpu) = metrics_clone.metrics.get("cpu_percent") {
                     println!("   {} current CPU: {:.1}%", resource, cpu);
                 }
             }
@@ -796,7 +794,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // 11. Final analysis and cleanup
     println!("\n📈 Final Predictive Scaling Analysis:");
-    println!("=" .repeat(45));
+    println!("{}", "=".repeat(45));
     
     // Show final forecasts for all resources
     for resource in &resources {
@@ -869,10 +867,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-// Add helper method to config for demo
+// Add helper trait for demo
 #[cfg(all(feature = "predictive-scaling", feature = "metrics-persistence", feature = "time-utils"))]
-impl PredictiveConfig {
-    fn default_policies_for_resource(&self, _resource: &str) -> Vec<ScalingPolicy> {
+trait PredictiveConfigDemoHelper {
+    fn default_policies_for_resource() -> Vec<ScalingPolicy>;
+}
+
+#[cfg(all(feature = "predictive-scaling", feature = "metrics-persistence", feature = "time-utils"))]
+impl PredictiveConfigDemoHelper for PredictiveConfig {
+    fn default_policies_for_resource() -> Vec<ScalingPolicy> {
         vec![ScalingPolicy {
             name: "demo-policy".to_string(),
             thresholds: vec![ScalingThreshold {

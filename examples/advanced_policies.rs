@@ -20,7 +20,7 @@
 //! Run with: cargo run --example advanced_policies --features "time-utils"
 
 #[cfg(feature = "time-utils")]
-use lighthouse::{
+pub use lighthouse::{
     LighthouseEngine, LighthouseConfig, LighthouseCallbacks, ResourceConfig,
     MetricsProvider, ScalingExecutor, ScalingObserver,
     CallbackContext, ScaleAction, ResourceMetrics, LighthouseResult,
