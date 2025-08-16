@@ -66,7 +66,8 @@
 //! use lighthouse::{
 //!     LighthouseEngine, LighthouseConfig, LighthouseCallbacks,
 //!     ScalingThreshold, ScalingPolicy, ResourceConfig,
-//!     MetricsProvider, ScalingExecutor, ResourceMetrics, CallbackContext, ScaleAction, LighthouseResult
+//!     MetricsProvider, ScalingExecutor, ResourceMetrics,
+//!     CallbackContext, ScaleAction, LighthouseResult
 //! };
 //! use std::sync::Arc;
 //! use std::collections::HashMap;
